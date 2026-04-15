@@ -7,18 +7,27 @@ function LearningModal({ wordId, isOpen, onClose, onAnswer, isLearned, streak })
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
-  const [phase, setPhase] = useState('quiz') // 'quiz' or 'flashcard'
+  const [phase, setPhase] = useState('quiz')
 
+  // Initialize quiz options when modal opens or word changes
   useEffect(() => {
-    if (word) {
-      setQuizOptions(getQuizOptions(word))
-      setSelectedAnswer(null)
-      setShowFeedback(false)
-      setPhase('quiz')
+    if (word && isOpen) {
+      try {
+        const options = getQuizOptions(word)
+        setQuizOptions(options)
+        setSelectedAnswer(null)
+        setShowFeedback(false)
+        setPhase('quiz')
+      } catch (error) {
+        console.error('Error generating quiz options:', error)
+        setQuizOptions([word])  // Fallback: just show the correct word
+      }
     }
-  }, [word, isOpen])
+  }, [word?.id, isOpen])
 
-  if (!isOpen || !word) return null
+  if (!isOpen || !word) {
+    return null
+  }
 
   // Handle answer selection
   const handleSelectAnswer = (selectedWord) => {

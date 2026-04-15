@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
 import FeedCard from './FeedCard'
-import { VOCABULARY_DATA } from '../data/vocabulary'
+import { getAllVocabulary } from '../data/vocabulary'
 
 function FeedPage({ learnedWords, likedWords, onOpenLearning, onToggleLike }) {
   const [scrollPosition, setScrollPosition] = useState(0)
+  const [vocabularyData, setVocabularyData] = useState([])
+
+  // Load vocabulary data from localStorage
+  useEffect(() => {
+    setVocabularyData(getAllVocabulary())
+  }, [])
 
   // Handle scroll
   const handleScroll = (e) => {
@@ -36,7 +42,7 @@ function FeedPage({ learnedWords, likedWords, onOpenLearning, onToggleLike }) {
       {/* Scrollable Feed */}
       <div className="feed-scroll-container" onScroll={handleScroll}>
         <div className="feed-cards-wrapper">
-          {VOCABULARY_DATA.map((word, index) => (
+          {vocabularyData.map((word, index) => (
             <div key={word.id} className="feed-card-slot">
               <FeedCard
                 wordId={word.id}
@@ -53,7 +59,7 @@ function FeedPage({ learnedWords, likedWords, onOpenLearning, onToggleLike }) {
       {/* Scroll Indicator */}
       <div className="feed-scroll-indicator">
         <div className="indicator-dots">
-          {VOCABULARY_DATA.map((_, index) => (
+          {vocabularyData.map((_, index) => (
             <div
               key={index}
               className={`indicator-dot ${index === Math.floor(scrollPosition / 320) ? 'active' : ''}`}

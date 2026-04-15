@@ -28,6 +28,18 @@ function Navbar({ currentPage, onNavigate, streak, accuracy }) {
             📚 Feed
           </button>
           <button
+            className={`nav-btn ${currentPage === 'batch' ? 'active' : ''}`}
+            onClick={() => onNavigate('batch')}
+          >
+            🎓 Batch Learn
+          </button>
+          <button
+            className={`nav-btn ${currentPage === 'quiz' ? 'active' : ''}`}
+            onClick={() => onNavigate('quiz')}
+          >
+            ✏️ Quiz Mode
+          </button>
+          <button
             className={`nav-btn ${currentPage === 'favorites' ? 'active' : ''}`}
             onClick={() => onNavigate('favorites')}
           >

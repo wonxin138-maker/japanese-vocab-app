@@ -179,8 +179,8 @@ export const VOCABULARY_DATA = [
 
 // Initialize localStorage with default data
 export const initializeStorage = () => {
-  if (!localStorage.getItem('vocabulary')) {
-    localStorage.setItem('vocabulary', JSON.stringify(VOCABULARY_DATA))
+  if (!localStorage.getItem('allVocabulary')) {
+    localStorage.setItem('allVocabulary', JSON.stringify(VOCABULARY_DATA))
   }
   if (!localStorage.getItem('learnedWords')) {
     localStorage.setItem('learnedWords', JSON.stringify([]))
@@ -200,9 +200,19 @@ export const initializeStorage = () => {
   }
 }
 
+// Get all vocabulary from localStorage (includes default + imported words)
+export const getAllVocabulary = () => {
+  const stored = localStorage.getItem('allVocabulary')
+  if (stored) {
+    return JSON.parse(stored)
+  }
+  return VOCABULARY_DATA
+}
+
 // Get a word by id
 export const getWordById = (id) => {
-  return VOCABULARY_DATA.find(word => word.id === id)
+  const allWords = getAllVocabulary()
+  return allWords.find(word => word.id === id)
 }
 
 // Get progress from localStorage
@@ -212,10 +222,27 @@ export const getProgress = () => {
 
 // Get all words available for flashcard learning
 export const getUnlearnedWords = (learnedWords) => {
-  return VOCABULARY_DATA.filter(word => !learnedWords.includes(word.id))
+  const allWords = getAllVocabulary()
+  return allWords.filter(word => !learnedWords.includes(word.id))
 }
 
 // Shuffle array function
+// Seeded random function for consistent shuffling
+const seededRandom = (seed) => {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
+// Shuffle array with seed for consistency
+const shuffleArrayWithSeed = (array, seed) => {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRandom(seed + i) * (i + 1))
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 export const shuffleArray = (array) => {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -225,10 +252,51 @@ export const shuffleArray = (array) => {
   return shuffled
 }
 
-// Get random quiz options
+// Get random quiz options - always returns 4 options
 export const getQuizOptions = (correctWord, count = 4) => {
-  const otherWords = VOCABULARY_DATA.filter(w => w.id !== correctWord.id)
-  const shuffled = shuffleArray(otherWords)
-  const options = [correctWord, ...shuffled.slice(0, count - 1)]
-  return shuffleArray(options)
+  const allWords = getAllVocabulary()
+  
+  // Filter out the correct word
+  const otherWords = allWords.filter(w => w.id !== correctWord.id)
+  
+  // Start with correct word
+  let options = [correctWord]
+  
+  // Add incorrect options
+  if (otherWords.length > 0) {
+    // If we have enough other words
+    if (otherWords.length >= count - 1) {
+      // Randomly pick count-1 options from other words
+      const shuffled = [...otherWords].sort(() => Math.random() - 0.5)
+      options.push(...shuffled.slice(0, count - 1))
+    } else {
+      // Not enough words, add all and repeat to fill
+      options.push(...otherWords)
+      while (options.length < count) {
+        const randomWord = otherWords[Math.floor(Math.random() * otherWords.length)]
+        options.push(randomWord)
+      }
+    }
+  }
+  
+  // Shuffle all options
+  options = options.sort(() => Math.random() - 0.5)
+  
+  return options
+}
+
+// Add imported words to vocabulary
+export const addImportedWords = (newWords) => {
+  const allWords = getAllVocabulary()
+  const maxId = Math.max(...allWords.map(w => w.id), 0)
+  const wordsWithIds = newWords.map((word, index) => ({
+    id: maxId + index + 1,
+    word: word.word || '',
+    kana: word.reading || '',
+    meaning: word.meaning || '',
+    example: `${word.word}の例` || ''
+  }))
+  const combined = [...allWords, ...wordsWithIds]
+  localStorage.setItem('allVocabulary', JSON.stringify(combined))
+  return combined
 }
