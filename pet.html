@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI宠物 - 你的治愈伙伴</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Three.js 库（优先使用CDN，CDN失败则使用本地） -->
+    <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 备用: 若CDN失败将自动使用CSS版本 -->
+    <script>
+        if (!window.THREE) {
+            console.warn('⚠️ Three.js CDN 加载失败，将使用 CSS 2D 版本');
+            window.USE_CSS_VERSION = true;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- 宠物区域 -->
+        <div class="pet-section">
+            <div class="pet-container">
+                <!-- 3D猫咪容器 (Three.js) / CSS猫咪备用 -->
+                <div class="pet" id="pet">
+                    <!-- 备用: CSS 2D猫咪结构（当Three.js不可用时显示） -->
+                    <div class="cat-3d" style="display: none;" id="csscat-container">
+                        <div class="cat-body">
+                            <div class="cat-torso"></div>
+                            <div class="cat-head">
+                                <div class="cat-ear left"></div>
+                                <div class="cat-ear right"></div>
+                                <div class="cat-face">
+                                    <div class="cat-eye left">
+                                        <div class="cat-pupil"></div>
+                                        <div class="cat-shine"></div>
+                                    </div>
+                                    <div class="cat-eye right">
+                                        <div class="cat-pupil"></div>
+                                        <div class="cat-shine"></div>
+                                    </div>
+                                    <div class="cat-nose"></div>
+                                    <div class="cat-mouth"></div>
+                                    <div class="cat-blush left"></div>
+                                    <div class="cat-blush right"></div>
+                                </div>
+                            </div>
+                            <div class="cat-legs">
+                                <div class="cat-leg left"></div>
+                                <div class="cat-leg right"></div>
+                            </div>
+                            <div class="cat-tail"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 表情气泡 -->
+                <div class="expression-bubble" id="expressionBubble"></div>
+
+                <!-- 状态显示 -->
+                <div class="pet-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">心情</div>
+                        <div class="stat-bar">
+                            <div class="stat-fill mood" id="moodBar"></div>
+                        </div>
+                        <span class="stat-emoji" id="moodEmoji">😊</span>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">饥饿</div>
+                        <div class="stat-bar">
+                            <div class="stat-fill hunger" id="hungerBar"></div>
+                        </div>
+                        <span class="stat-emoji" id="hungerEmoji">😋</span>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">精力</div>
+                        <div class="stat-bar">
+                            <div class="stat-fill energy" id="energyBar"></div>
+                        </div>
+                        <span class="stat-emoji" id="energyEmoji">⚡</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天区域 -->
+        <div class="chat-section">
+            <!-- 对话气泡区 -->
+            <div class="chat-history" id="chatHistory">
+                <div class="chat-bubble pet-message">
+                    <p>Hi~ 我是你的AI宠物！😊 很高兴认识你！</p>
+                    <span class="chat-time">刚刚</span>
+                </div>
+            </div>
+
+            <!-- 输入区 -->
+            <div class="chat-input-area">
+                <input 
+                    type="text" 
+                    id="chatInput" 
+                    class="chat-input" 
+                    placeholder="和我聊天吧...按Enter发送"
+                    maxlength="200"
+                >
+                <button class="chat-send" id="sendBtn">
+                    <span>发送</span>
+                </button>
+            </div>
+
+            <!-- 功能按钮 -->
+            <div class="action-buttons">
+                <button class="action-btn surprise" id="surpriseBtn" title="随机惊喜">
+                    <span class="btn-icon">🎁</span>
+                    <span>惊喜</span>
+                </button>
+                <button class="action-btn feed" id="feedBtn" title="喂食">
+                    <span class="btn-icon">🍖</span>
+                    <span>喂食</span>
+                </button>
+                <button class="action-btn play" id="playBtn" title="陪玩">
+                    <span class="btn-icon">🎮</span>
+                    <span>陪玩</span>
+                </button>
+                <button class="action-btn rest" id="restBtn" title="休息">
+                    <span class="btn-icon">😴</span>
+                    <span>休息</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全局通知 -->
+    <div class="notification" id="notification"></div>
+
+    <!-- 脚本 -->
+    <script src="pet-data.js"></script>
+    <script src="pet-state.js"></script>
+    <script src="pet-chat.js"></script>
+    <script>
+        // 条件加载：如果Three.js加载成功，使用3D版本；否则使用CSS版本
+        if (window.THREE && !window.USE_CSS_VERSION) {
+            document.write('<script src="pet-3d.js"><\/script>');
+        } else {
+            document.write('<script src="pet-css.js"><\/script>');
+        }
+    </script>
+    <script src="pet-main.js"></script>
+    
+    <!-- 初始化 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化3D或CSS版本
+            if (window.USE_CSS_VERSION || !window.THREE) {
+                console.log('📌 使用 CSS 2D 版本');
+                if (window.initPetCSS) {
+                    initPetCSS();
+                }
+            } else {
+                console.log('✨ 使用 Three.js 3D 版本');
+                if (window.initPet3D) {
+                    initPet3D();
+                }
+            }
+            
+            // 启动应用
+            const app = new PetApp();
+            app.init();
+        });
+    </script>
+</body>
+</html>

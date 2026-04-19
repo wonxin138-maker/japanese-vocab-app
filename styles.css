@@ -1,0 +1,884 @@
+/* ==================== 全局样式 ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #FFD6E8;
+    --secondary-color: #FFE8F0;
+    --accent-color: #FFA8D8;
+    --text-color: #5A5A5A;
+    --border-color: #F0D9E8;
+    --shadow: 0 8px 32px rgba(255, 166, 216, 0.15);
+    --shadow-light: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    background: linear-gradient(135deg, #FFF5FB 0%, #FFE8F0 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    padding: 10px;
+}
+
+/* ==================== 容器布局 ==================== */
+.container {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+    max-width: 900px;
+    background: white;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: var(--shadow);
+    animation: slideIn 0.6s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== 宠物区域 ==================== */
+.pet-section {
+    flex: 0 0 40%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.pet-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.pet {
+    position: relative;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #FFF8F5 0%, #FFE5F0 100%);
+    filter: drop-shadow(0 8px 20px rgba(255, 166, 216, 0.25));
+    transition: filter 0.3s ease;
+}
+
+.pet:hover {
+    filter: drop-shadow(0 12px 30px rgba(255, 166, 216, 0.35));
+}
+
+/* Three.js Canvas容器 */
+.pet canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+/* ==================== 3D猫咪样式（已迁移到Three.js）- 保留以备CSS版本切换 ====================
+
+// .cat-3d 样式已弃用，所有CSS绘制的猫咪元素已改为Three.js 3D渲染
+// 详见 pet-3d.js
+
+*/
+
+/* 
+==================== CSS 2D 猫咪样式（备用方案）====================
+当Three.js不可用时使用此样式显示CSS版本的2D猫咪
+原有的Phase 3.0设计，保留以高可用性
+*/
+
+.cat-3d {
+    width: 240px;
+    height: 240px;
+    position: relative;
+    perspective: 1000px;
+    animation: cat-breathe 3s ease-in-out infinite;
+}
+
+.cat-body {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* 身体 */
+.cat-torso {
+    position: absolute;
+    width: 100px;
+    height: 120px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #FFF5EB 0%, #FFE8D6 100%);
+    border-radius: 40px 40px 30px 30px;
+    box-shadow: 
+        inset -2px 2px 5px rgba(0,0,0,0.05),
+        inset 2px 2px 5px rgba(255,255,255,0.8);
+    z-index: 1;
+}
+
+/* 头部 */
+.cat-head {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #FFF8F5 0%, #FFE8D6 100%);
+    border-radius: 50%;
+    box-shadow: 
+        0 8px 20px rgba(0,0,0,0.1),
+        inset -2px 2px 5px rgba(0,0,0,0.05),
+        inset 2px 2px 8px rgba(255,255,255,0.9);
+    z-index: 2;
+}
+
+/* 耳朵 */
+.cat-ear {
+    position: absolute;
+    width: 40px;
+    height: 50px;
+    background: linear-gradient(135deg, #FFE8D6 0%, #FFD6C0 100%);
+    border-radius: 50% 50% 50% 30%;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.8);
+}
+
+.cat-ear.left {
+    top: -5px;
+    left: 15px;
+    transform: rotate(-25deg);
+}
+
+.cat-ear.right {
+    top: -5px;
+    right: 15px;
+    transform: rotate(25deg);
+}
+
+.cat-ear::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 28px;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FFB8A8;
+    border-radius: 50%;
+    opacity: 0.6;
+}
+
+/* 脸部 */
+.cat-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+/* 眼睛 */
+.cat-eye {
+    position: absolute;
+    width: 25px;
+    height: 35px;
+    background: linear-gradient(135deg, #3A3A3A 0%, #1A1A1A 100%);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    box-shadow: inset -1px 1px 3px rgba(0,0,0,0.3);
+    animation: cat-blink 3s ease-in-out infinite;
+}
+
+.cat-eye.left {
+    top: 40px;
+    left: 25px;
+}
+
+.cat-eye.right {
+    top: 40px;
+    right: 25px;
+}
+
+.cat-pupil {
+    position: absolute;
+    width: 12px;
+    height: 16px;
+    background: #1A1A1A;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.cat-shine {
+    position: absolute;
+    width: 8px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    top: 30%;
+    left: 35%;
+    opacity: 0.8;
+}
+
+/* 鼻子 */
+.cat-nose {
+    position: absolute;
+    width: 14px;
+    height: 12px;
+    background: #FFB8A8;
+    border-radius: 50%;
+    top: 65px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 嘴 */
+.cat-mouth {
+    position: absolute;
+    width: 16px;
+    height: 8px;
+    top: 78px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-bottom: 2px solid #DB9B88;
+    border-radius: 0 0 8px 8px;
+}
+
+.cat-mouth::before,
+.cat-mouth::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 6px;
+    border: 1.5px solid #DB9B88;
+    border-radius: 50%;
+    top: -2px;
+}
+
+.cat-mouth::before {
+    left: -8px;
+    border-right: none;
+}
+
+.cat-mouth::after {
+    right: -8px;
+    border-left: none;
+}
+
+/* 腮红 */
+.cat-blush {
+    position: absolute;
+    width: 20px;
+    height: 14px;
+    background: radial-gradient(ellipse at center, #FFB8D0 0%, #FFD6E8 100%);
+    border-radius: 50%;
+    opacity: 0.5;
+    top: 65px;
+}
+
+.cat-blush.left {
+    left: 15px;
+}
+
+.cat-blush.right {
+    right: 15px;
+}
+
+/* 前腿 */
+.cat-legs {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 60px;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    z-index: 0;
+}
+
+.cat-leg {
+    width: 20px;
+    height: 60px;
+    background: linear-gradient(90deg, #FFF5EB 0%, #FFE8D6 100%);
+    border-radius: 10px 10px 12px 12px;
+    box-shadow: inset -1px 1px 3px rgba(0,0,0,0.05);
+    animation: cat-leg-sway 2s ease-in-out infinite;
+}
+
+.cat-leg.left {
+    animation-delay: -0.2s;
+}
+
+/* 尾巴 */
+.cat-tail {
+    position: absolute;
+    width: 35px;
+    height: 100px;
+    bottom: 35px;
+    right: -15px;
+    background: linear-gradient(90deg, #FFE8D6 0%, #FFD6C0 100%);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    transform-origin: top center;
+    animation: cat-tail-wave 2.5s ease-in-out infinite;
+    box-shadow: 
+        inset -2px 2px 5px rgba(0,0,0,0.05),
+        inset 1px 1px 3px rgba(255,255,255,0.8);
+}
+
+/* ==================== CSS 动画（备用） ==================== */
+
+@keyframes cat-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+@keyframes cat-blink {
+    0%, 10%, 20%, 100% { height: 35px; }
+    5%, 15% { height: 4px; animation-timing-function: ease-in; }
+}
+
+@keyframes cat-leg-sway {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-2deg); }
+}
+
+@keyframes cat-tail-wave {
+    0%, 100% { transform: rotate(-5deg); }
+    25% { transform: rotate(10deg); }
+    50% { transform: rotate(-5deg); }
+    75% { transform: rotate(8deg); }
+}
+
+@keyframes pet-idle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* ⚠️ 以下CSS动画已迁移到Three.js - 保留备用 */
+/*
+@keyframes cat-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+@keyframes cat-blink {
+    0%, 10%, 20%, 100% { height: 35px; }
+    5%, 15% { height: 4px; animation-timing-function: ease-in; }
+}
+
+@keyframes cat-leg-sway {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-2deg); }
+}
+
+@keyframes cat-tail-wave {
+    0%, 100% { transform: rotate(-5deg); }
+    25% { transform: rotate(10deg); }
+    50% { transform: rotate(-5deg); }
+    75% { transform: rotate(8deg); }
+}
+
+@keyframes cat-bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.05); }
+}
+
+@keyframes cat-wobble {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-3deg); }
+    75% { transform: rotate(3deg); }
+}
+*/
+
+@keyframes blink {
+    0%, 90%, 100% {
+        r: 6;
+    }
+    95% {
+        r: 1;
+    }
+}
+
+.pet-body, .pet-head, .pet-ear, .pet-limb {
+    display: none;
+}
+
+.pet-eye {
+    display: none;
+}
+
+.pet-tail {
+    animation: tail-wag 2s ease-in-out infinite;
+    transform-origin: 140px 120px;
+}
+
+@keyframes tail-wag {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    50% {
+        transform: rotate(8deg);
+    }
+}
+
+/* 表情气泡 - 更柔和 */
+.expression-bubble {
+    position: absolute;
+    bottom: -35px;
+    right: -35px;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #FFF8F5 0%, #FFE5F0 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    box-shadow: 0 6px 20px rgba(255, 166, 216, 0.2);
+    opacity: 0;
+    animation: bubble-pop-soft 0.6s ease-out;
+}
+
+@keyframes bubble-pop-soft {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.3);
+    }
+}
+
+/* 状态条 */
+.pet-stats {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    justify-content: center;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFF5FB;
+    padding: 10px 15px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #999;
+    white-space: nowrap;
+}
+
+.stat-bar {
+    width: 80px;
+    height: 6px;
+    background: #F0D9E8;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stat-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.stat-fill.mood {
+    background: linear-gradient(90deg, #FF8FAC 0%, #FFB3D9 100%);
+}
+
+.stat-fill.hunger {
+    background: linear-gradient(90deg, #FFB84D 0%, #FFD699 100%);
+}
+
+.stat-fill.energy {
+    background: linear-gradient(90deg, #81C4FF 0%, #B3DCFF 100%);
+}
+
+.stat-emoji {
+    font-size: 16px;
+}
+
+/* ==================== 聊天区域 ==================== */
+.chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 350px;
+}
+
+/* 对话历史 */
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #FFFBFD;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    max-height: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-history::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+    background: #DDD;
+    border-radius: 3px;
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+    background: #BBB;
+}
+
+/* 对话气泡 */
+.chat-bubble {
+    max-width: 80%;
+    padding: 14px 18px;
+    border-radius: 24px;
+    word-wrap: break-word;
+    animation: slideInBubble 0.3s ease-out;
+}
+
+@keyframes slideInBubble {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pet-message {
+    background: linear-gradient(135deg, #FFF8F5 0%, #FFE5F0 100%);
+    border: 1px solid #FFE0EC;
+    align-self: flex-start;
+    color: var(--text-color);
+    box-shadow: 0 4px 12px rgba(255, 166, 216, 0.1);
+}
+
+.user-message {
+    background: linear-gradient(135deg, #E1F5FE 0%, #F0FAFF 100%);
+    border: 1px solid #B3E5FC;
+    align-self: flex-end;
+    color: #1A5276;
+    box-shadow: 0 4px 12px rgba(129, 196, 255, 0.1);
+}
+
+.chat-bubble p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.chat-time {
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+    display: block;
+    opacity: 0.7;
+}
+
+/* 输入区 */
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+    background: #FFF5FB;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.chat-input {
+    flex: 1;
+    border: none;
+    background: white;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-color);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.chat-input:focus {
+    box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.chat-input::placeholder {
+    color: #CCC;
+}
+
+.chat-send {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--accent-color) 0%, #FF8FAC 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.chat-send:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 166, 216, 0.3);
+}
+
+.chat-send:active {
+    transform: translateY(0);
+}
+
+/* 功能按钮 */
+.action-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 8px;
+    background: white;
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-light);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.btn-icon {
+    font-size: 20px;
+    display: block;
+}
+
+.action-btn.surprise {
+    background: linear-gradient(135deg, #FFE8D6 0%, #FFF0E8 100%);
+    border-color: #FFD699;
+}
+
+.action-btn.feed {
+    background: linear-gradient(135deg, #FFE8D6 0%, #FFF0E8 100%);
+    border-color: #FFD699;
+}
+
+.action-btn.play {
+    background: linear-gradient(135deg, #E8F5FF 0%, #F0FAFF 100%);
+    border-color: #B3DCFF;
+}
+
+.action-btn.rest {
+    background: linear-gradient(135deg, #F0E8FF 0%, #F8F0FF 100%);
+    border-color: #D9C8FF;
+}
+
+/* 通知 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 300px;
+    padding: 16px 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    font-size: 14px;
+    color: var(--text-color);
+    animation: slideInNotification 0.3s ease-out;
+    z-index: 1000;
+    opacity: 0;
+}
+
+@keyframes slideInNotification {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+.notification.success {
+    border-left: 4px solid #4CAF50;
+}
+
+.notification.info {
+    border-left: 4px solid #2196F3;
+}
+
+.notification.warning {
+    border-left: 4px solid #FF9800;
+}
+
+/* ==================== 响应式设计 ==================== */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .pet-section {
+        flex: 0 0 auto;
+    }
+
+    .chat-section {
+        min-width: auto;
+    }
+
+    .action-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chat-history {
+        max-height: 250px;
+    }
+
+    .pet-svg {
+        width: 150px;
+        height: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .pet-stats {
+        flex-direction: column;
+    }
+
+    .action-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chat-bubble {
+        max-width: 90%;
+    }
+}
+
+/* ==================== 动画辅助类 ==================== */
+.shake {
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+.jump {
+    animation: jump 0.5s ease-out;
+}
+
+@keyframes jump {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-30px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.spin {
+    animation: spin 0.6s ease-in-out;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.happy {
+    animation: happy 0.5s ease-in-out;
+}
+
+@keyframes happy {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
