@@ -565,28 +565,10 @@ app.use((req, res) => {
 // ════════════════════════════════════════
 // 启动
 // ════════════════════════════════════════
-
-// 获取本地IP地址
-const os = require('os');
-function getLocalIP() {
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                return iface.address;
-            }
-        }
-    }
-    return '127.0.0.1';
-}
-
-const LOCAL_IP = getLocalIP();
-
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
     console.log(`
 🚀 AI 标签服务已启动（最终稳定版）
 📍 http://localhost:${PORT}
-📍 本地网络: http://${LOCAL_IP}:${PORT}
 
 ✔ 国内直连（Qwen）
 ✔ 自动解析 JSON
