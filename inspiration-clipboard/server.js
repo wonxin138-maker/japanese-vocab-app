@@ -322,7 +322,7 @@ ${groupsText}
 // ════════════════════════════════════════
 
 // 健康检查
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
     res.json({
         status: 'ok',
         message: 'AI 标签服务（最终稳定版）'
