@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设计灵感剪切板 - Step 3: 伪AI术语生成</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-amber: #7DD3C0;
+            --light-amber: #A8E6E1;
+            --dark-amber: #5CAA99;
+            --bg-light: #F7FDFB;
+            --bg-dark: #4A3728;
+            --text-dark: #2B1F18;
+            --text-light: #F8F6F3;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-dark: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: var(--bg-dark);
+                color: var(--text-light);
+            }
+
+            .header,
+            .notes-area {
+                background-color: rgba(45, 37, 32, 0.8);
+                color: var(--text-light);
+            }
+
+            .day-card {
+                background-color: rgba(60, 50, 45, 0.8);
+                border-color: var(--primary-amber);
+            }
+        }
+
+        body {
+            font-family: 'Georgia', 'Microsoft YaHei', cursive, sans-serif;
+            background: linear-gradient(135deg, #F7FDFB 0%, #E6F5F3 50%, #F7FDFB 100%);
+            color: var(--text-dark);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 30px 40px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(125, 211, 192, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(168, 230, 225, 0.3);
+            animation: slideDown 0.6s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .week-info {
+            text-align: center;
+            flex: 1;
+        }
+
+        .week-info h1 {
+            font-size: 32px;
+            font-weight: 500;
+            background: linear-gradient(135deg, #5CAA99 0%, #7DD3C0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .week-info p {
+            font-size: 14px;
+            color: #7DD3C0;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            background-color: var(--primary-amber);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--dark-amber);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .nav-btn.ai-btn {
+            background-color: #888;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .nav-btn.ai-btn.active {
+            background-color: #7DD3C0;
+        }
+
+        .nav-btn.ai-btn:hover {
+            background-color: #555;
+        }
+
+        .nav-btn.ai-btn.active:hover {
+            background-color: #5CAA99;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .day-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(230, 245, 243, 0.5) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(125, 211, 192, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: auto;
+            border: 1.5px solid rgba(168, 230, 225, 0.2);
+            position: relative;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 32px rgba(125, 211, 192, 0.15);
+            border-color: var(--primary-amber);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--light-amber);
+        }
+
+        .day-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--dark-amber);
+            letter-spacing: 0.5px;
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: #999;
+            font-weight: 300;
+        }
+
+        .day-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            position: relative;
+            min-height: 200px;
+        }
+
+        .upload-btn {
+            width: 100%;
+            padding: 20px;
+            border: 2px dashed var(--light-amber);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(125, 211, 192, 0.05) 0%, rgba(168, 230, 225, 0.05) 100%);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 13px;
+            color: #7DD3C0;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .upload-btn:hover {
+            border-color: var(--primary-amber);
+            background: linear-gradient(135deg, rgba(125, 211, 192, 0.1) 0%, rgba(168, 230, 225, 0.1) 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-btn input[type="file"] {
+            display: none;
+        }
+
+        .image-card {
+            position: relative;
+            flex-shrink: 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .image-card.collapsed {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .polaroid {
+            background-color: white;
+            border: 8px solid white;
+            border-bottom: 40px solid white;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            position: relative;
+            transform: rotate(var(--rotation, 0deg));
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .image-card:hover .polaroid {
+            box-shadow: 0 12px 36px rgba(125, 211, 192, 0.2);
+        }
+
+        .image-card.collapsed .polaroid {
+            display: none;
+        }
+
+        .polaroid img {
+            display: block;
+            width: 180px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 2px;
+        }
+
+        .card-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            display: none;
+        }
+
+        .image-card.collapsed .card-thumb {
+            display: block;
+        }
+
+        .card-thumb:hover {
+            transform: scale(1.05);
+        }
+
+        .expand-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary-amber);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 15;
+        }
+
+        .image-card.collapsed .expand-btn {
+            opacity: 1;
+            visibility: visible;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+        }
+
+        .image-card:not(.collapsed) .expand-btn {
+            opacity: 1;
+            visibility: visible;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+        }
+
+        .image-card:hover .expand-btn {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .expand-btn:hover {
+            background: var(--dark-amber);
+            transform: scale(1.15);
+        }
+
+        .remove-img-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 28px;
+            height: 28px;
+            background-color: #E85D6D;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .image-card:hover .remove-img-btn {
+            opacity: 1;
+        }
+
+        .remove-img-btn:hover {
+            background-color: #D84A5C;
+            transform: scale(1.15);
+        }
+
+        .decorators {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .tape {
+            position: absolute;
+            width: 50px;
+            height: 12px;
+            background-color: #FFF8E7;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform-origin: center;
+            opacity: 0.7;
+        }
+
+        .tape.tape-top {
+            top: 15px;
+            transform: rotate(-15deg);
+        }
+
+        .tape.tape-bottom {
+            bottom: 15px;
+            transform: rotate(-25deg);
+        }
+
+        .pin {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #E85D6D;
+            border-radius: 50%;
+            box-shadow: 
+                0 2px 4px rgba(0, 0, 0, 0.2),
+                inset -1px -1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .pin::before {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 6px;
+            background-color: #333;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .paperclip {
+            position: absolute;
+            width: 20px;
+            height: 30px;
+            border: 2px solid #999;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            opacity: 0.6;
+        }
+
+        /* ════════════════════════════════════════ */
+        /* Step 3: 术语标签样式 */
+        /* ════════════════════════════════════════ */
+        
+        .tags-display {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .tags-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: flex-start;
+        }
+
+        .tag-capsule {
+            display: inline-block;
+            background-color: rgba(125, 211, 192, 0.2);
+            color: var(--dark-amber);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            white-space: nowrap;
+            border: 1px solid rgba(125, 211, 192, 0.4);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tag-capsule:hover {
+            background-color: rgba(125, 211, 192, 0.35);
+            border-color: var(--primary-amber);
+            transform: scale(1.05);
+        }
+
+        .tag-count {
+            display: inline-block;
+            background-color: var(--primary-amber);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* 标签列表弹出窗 */
+        .tags-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(230, 245, 243, 0.6) 100%);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(125, 211, 192, 0.2);
+            border: 1px solid rgba(168, 230, 225, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 400px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .tags-modal.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .tags-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .tags-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tags-modal h3 {
+            font-size: 18px;
+            color: var(--dark-amber);
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+        }
+
+        .tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: rgba(125, 211, 192, 0.15);
+            color: var(--text-dark);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid rgba(125, 211, 192, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tag-item:hover {
+            background-color: rgba(125, 211, 192, 0.3);
+            border-color: var(--primary-amber);
+        }
+
+        .tag-item .copy-hint {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .tag-item:hover .copy-hint {
+            opacity: 1;
+        }
+
+        .tag-item.copied {
+            background-color: #A8E6E1;
+            border-color: #7DD3C0;
+        }
+
+        .tag-capsule.copied {
+            background-color: #A8E6E1;
+            border-color: #7DD3C0;
+            color: #2B1F18;
+        }
+
+        .tags-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tags-modal-close:hover {
+            color: var(--dark-amber);
+            transform: rotate(90deg);
+        }
+
+        /* 风格分析弹窗 */
+        .prompt-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .prompt-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .prompt-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(230, 245, 243, 0.6) 100%);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(125, 211, 192, 0.2);
+            border: 1px solid rgba(168, 230, 225, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 500px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .prompt-modal.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .prompt-modal h3 {
+            font-size: 20px;
+            background: linear-gradient(135deg, #5CAA99 0%, #7DD3C0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .prompt-modal p {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        .prompt-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .prompt-actions button {
+            background: linear-gradient(135deg, var(--primary-amber) 0%, var(--dark-amber) 100%);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(125, 211, 192, 0.2);
+            font-weight: 500;
+        }
+
+        .prompt-actions button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(125, 211, 192, 0.3);
+        }
+
+        .prompt-actions button:disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        .prompt-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .prompt-modal-close:hover {
+            color: var(--dark-amber);
+            transform: rotate(90deg);
+        }
+
+        /* 羽毛按钮 */
+        .feather-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #E6F5F3 0%, #D4EAE5 100%);
+            color: #5CAA99;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(125, 211, 192, 0.15);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+        }
+
+        .feather-btn:hover {
+            transform: scale(1.15);
+            background: linear-gradient(135deg, #D4EAE5 0%, #A8E6E1 100%);
+            box-shadow: 0 6px 16px rgba(125, 211, 192, 0.25);
+        }
+
+        .feather-btn:active {
+            transform: scale(0.95);
+        }
+
+        .feather-btn.loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 日周总结按钮 */
+        .summary-btn {
+            background-color: var(--primary-amber);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-top: 12px;
+        }
+
+        .summary-btn:hover {
+            background-color: var(--dark-amber);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .summary-btn:active {
+            transform: translateY(0);
+        }
+
+        .summary-btn.loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 总结modal */
+        .summary-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .summary-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .summary-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(230, 245, 243, 0.6) 100%);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(125, 211, 192, 0.2);
+            border: 1px solid rgba(168, 230, 225, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .summary-modal.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .summary-modal h3 {
+            font-size: 20px;
+            background: linear-gradient(135deg, #5CAA99 0%, #7DD3C0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .summary-modal p {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .summary-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .summary-actions button {
+            background: linear-gradient(135deg, var(--primary-amber) 0%, var(--dark-amber) 100%);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(125, 211, 192, 0.2);
+            font-weight: 500;
+        }
+
+        .summary-actions button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(125, 211, 192, 0.3);
+        }
+
+        .summary-actions button:disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        .summary-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .summary-modal-close:hover {
+            color: var(--dark-amber);
+            transform: rotate(90deg);
+        }
+
+        .drop-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            backdrop-filter: blur(2px);
+        }
+
+        .drop-overlay.active {
+            display: flex;
+        }
+
+        .drop-hint {
+            background-color: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: dropHint 0.3s ease;
+        }
+
+        @keyframes dropHint {
+            from {
+                transform: scale(0.8) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .drop-hint h2 {
+            font-size: 32px;
+            color: var(--dark-amber);
+            margin-bottom: 12px;
+            font-weight: 400;
+        }
+
+        .drop-hint p {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .notes-section {
+            margin-top: 40px;
+        }
+
+        .notes-section h2 {
+            font-size: 20px;
+            color: var(--dark-amber);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            font-weight: 400;
+        }
+
+        .notes-area {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(230, 245, 243, 0.5) 100%);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(125, 211, 192, 0.08);
+            border: 1.5px solid rgba(168, 230, 225, 0.2);
+            transition: all 0.4s ease;
+        }
+
+        .notes-area:hover {
+            border-color: var(--primary-amber);
+            box-shadow: 0 8px 28px rgba(125, 211, 192, 0.12);
+        }
+
+        .notes-area textarea {
+            width: 100%;
+            height: 200px;
+            border: 1.5px solid rgba(125, 211, 192, 0.2);
+            border-radius: 12px;
+            padding: 14px;
+            font-family: 'Georgia', cursive, sans-serif;
+            font-size: 14px;
+            resize: vertical;
+            background-color: rgba(247, 253, 251, 0.8);
+            color: var(--text-dark);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .notes-area textarea:focus {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-color: var(--primary-amber);
+            box-shadow: 0 0 0 3px rgba(125, 211, 192, 0.1);
+        }
+
+        .notes-area textarea:focus {
+            background-color: #fff;
+            box-shadow: inset 0 0 8px rgba(212, 165, 116, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .nav-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .week-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .week-info h1 {
+                font-size: 22px;
+            }
+
+            .image-card {
+                flex-direction: column;
+            }
+
+            .tags-modal {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="nav-buttons">
+                <button class="nav-btn" id="prevWeekBtn">← 上一周</button>
+            </div>
+            <div class="week-info">
+                <h1 id="weekTitle">Week 16</h1>
+                <p id="weekRange">2026.04.13 - 2026.04.19</p>
+            </div>
+            <div class="nav-buttons">
+                <button class="nav-btn ai-btn" id="aiModeBtn">AI Tag: OFF</button>
+                <button class="nav-btn" id="nextWeekBtn">下一周 →</button>
+            </div>
+        </div>
+
+        <div class="week-grid">
+            <div class="day-card" data-day="1">
+                <div class="day-header">
+                    <span class="day-name">Monday</span>
+                    <span class="day-date" id="date-1">04.14</span>
+                </div>
+                <div class="day-content" data-day-key="monday"></div>
+            </div>
+
+            <div class="day-card" data-day="2">
+                <div class="day-header">
+                    <span class="day-name">Tuesday</span>
+                    <span class="day-date" id="date-2">04.15</span>
+                </div>
+                <div class="day-content" data-day-key="tuesday"></div>
+            </div>
+
+            <div class="day-card" data-day="3">
+                <div class="day-header">
+                    <span class="day-name">Wednesday</span>
+                    <span class="day-date" id="date-3">04.16</span>
+                </div>
+                <div class="day-content" data-day-key="wednesday"></div>
+            </div>
+
+            <div class="day-card" data-day="4">
+                <div class="day-header">
+                    <span class="day-name">Thursday</span>
+                    <span class="day-date" id="date-4">04.17</span>
+                </div>
+                <div class="day-content" data-day-key="thursday"></div>
+            </div>
+
+            <div class="day-card" data-day="5">
+                <div class="day-header">
+                    <span class="day-name">Friday</span>
+                    <span class="day-date" id="date-5">04.18</span>
+                </div>
+                <div class="day-content" data-day-key="friday"></div>
+            </div>
+
+            <div class="day-card" data-day="6">
+                <div class="day-header">
+                    <span class="day-name">Weekend</span>
+                    <span class="day-date" id="date-6">04.19-20</span>
+                </div>
+                <div class="day-content" data-day-key="weekend"></div>
+            </div>
+        </div>
+
+        <div class="notes-section">
+            <h2>📝 周笔记</h2>
+            <div class="notes-area">
+                <textarea 
+                    id="weekNotes" 
+                    placeholder="记录本周的设计灵感、想法、改进..."></textarea>
+            </div>
+            <button class="summary-btn" id="weekSummaryBtn">🍫 生成周总结</button>
+        </div>
+    </div>
+
+    <!-- 总结弹窗 -->
+    <div class="summary-modal-overlay" id="summaryOverlay"></div>
+    <div class="summary-modal" id="summaryModal">
+        <button class="summary-modal-close" id="summaryCloseBtn">×</button>
+        <h3 id="summaryTitle">✨ 灵感总结</h3>
+        <p id="summaryText"></p>
+        <div class="summary-actions">
+            <button id="copySummaryBtn">复制</button>
+        </div>
+    </div>
+
+    <!-- 标签列表弹窗 -->
+    <div class="tags-modal-overlay" id="tagsOverlay"></div>
+    <div class="tags-modal" id="tagsModal">
+        <button class="tags-modal-close" id="closeTagsBtn">×</button>
+        <h3>✨ 设计术语</h3>
+        <div class="tags-list" id="tagsList"></div>
+    </div>
+
+    <!-- 风格分析提示词弹窗 -->
+    <div class="prompt-modal-overlay" id="promptOverlay"></div>
+    <div class="prompt-modal" id="promptModal">
+        <button class="prompt-modal-close" id="promptCloseBtn">×</button>
+        <h3>✨ 风格提示词</h3>
+        <p id="promptText"></p>
+        <div class="prompt-actions">
+            <button id="copypromptBtn">复制</button>
+        </div>
+    </div>
+
+    <div class="drop-overlay" id="dropOverlay">
+        <div class="drop-hint">
+            <h2>👉 放到今天</h2>
+            <p>释放鼠标完成上传</p>
+        </div>
+    </div>
+
+    <script>
+        // ════════════════════════════════════════
+        // 全局函数 - 获取今天的 dayKey
+        // ════════════════════════════════════════
+        function getTodayKey() {
+            const dayOfWeek = new Date().getDay();
+            const dayMap = {
+                0: 'weekend',
+                1: 'monday',
+                2: 'tuesday',
+                3: 'wednesday',
+                4: 'thursday',
+                5: 'friday',
+                6: 'weekend'
+            };
+            return dayMap[dayOfWeek];
+        }
+
+        // ════════════════════════════════════════
+        // 全局变量 - AI 模式
+        // ════════════════════════════════════════
+        let useAI = false;
+
+        /**
+         * 切换 AI 模式
+         */
+        function toggleAIMode() {
+            useAI = !useAI;
+            const btn = document.getElementById('aiModeBtn');
+            btn.textContent = useAI ? 'AI Tag: ON' : 'AI Tag: OFF';
+            btn.classList.toggle('active', useAI);
+            console.log('AI Mode:', useAI ? 'ON' : 'OFF');
+        }
+
+        /**
+         * 异步获取术语 - 根据 AI 模式选择
+         * @param {String} imageData - 图片 base64 数据
+         * @returns {Promise<Array>} 术语数组
+         */
+        async function getTags(imageData) {
+            if (useAI) {
+                return await generateAITags(imageData);
+            } else {
+                return generateTags();
+            }
+        }
+
+        /**
+         * AI 术语生成函数 - 调用后端 API
+         * @param {String} imageData - 图片 base64 数据
+         * @returns {Promise<Array>} 术语数组
+         */
+        async function generateAITags(imageData) {
+            try {
+                const response = await fetch('http://localhost:3001/analyze-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success && Array.isArray(result.tags)) {
+                    console.log('✅ AI 标签生成成功:', result.tags);
+                    return result.tags;
+                } else {
+                    throw new Error('Invalid response format');
+                }
+
+            } catch (error) {
+                console.error('❌ AI 标签生成失败，使用随机术语:', error.message);
+                // Fallback 到随机术语
+                return generateTags();
+            }
+        }
+
+        /**
+         * 伪 AI 术语生成 - 随机选择
+         * @returns {Array} 术语数组
+         */
+        function generateTags() {
+            const colors = ['pastel', 'warm tone', 'muted color', 'gradient', 'vibrant', 'monochrome', 'saturated', 'desaturated', 'cool tone', 'earth tone'];
+            const styles = ['minimal', '3D', 'flat', 'glassmorphism', 'skeuomorphic', 'geometric', 'organic', 'vintage', 'futuristic', 'retro'];
+            const moods = ['cozy', 'calm', 'cute', 'playful', 'dreamy', 'serene', 'energetic', 'luxurious', 'nostalgic', 'modern'];
+            const materials = ['matte', 'soft shadow', 'grainy', 'smooth', 'textured', 'metallic', 'velvet', 'glossy', 'frosted', 'rough'];
+            const lighting = ['soft lighting', 'ambient', 'diffused', 'dramatic', 'golden hour', 'neon', 'backlighting', 'sidelight', 'harsh', 'rim light'];
+
+            const allLibraries = [colors, styles, moods, materials, lighting];
+            const tags = new Set();
+            const tagCount = Math.floor(Math.random() * 6) + 5;
+
+            while (tags.size < tagCount) {
+                const randomLibrary = allLibraries[Math.floor(Math.random() * allLibraries.length)];
+                const randomTag = randomLibrary[Math.floor(Math.random() * randomLibrary.length)];
+                tags.add(randomTag);
+            }
+
+            return Array.from(tags);
+        }
+
+        // ════════════════════════════════════════
+        // Step 3: 伪AI术语生成（核心）
+        // ════════════════════════════════════════
+
+        class DesignTagGenerator {
+            constructor() {
+                // 术语词库（5个分类）
+                this.colorLibrary = [
+                    'pastel', 'warm tone', 'muted color', 'gradient', 'vibrant',
+                    'monochrome', 'saturated', 'desaturated', 'cool tone', 'earth tone'
+                ];
+
+                this.styleLibrary = [
+                    'minimal', '3D', 'flat', 'glassmorphism', 'skeuomorphic',
+                    'geometric', 'organic', 'vintage', 'futuristic', 'retro'
+                ];
+
+                this.moodLibrary = [
+                    'cozy', 'calm', 'cute', 'playful', 'dreamy',
+                    'serene', 'energetic', 'luxurious', 'nostalgic', 'modern'
+                ];
+
+                this.materialLibrary = [
+                    'matte', 'soft shadow', 'grainy', 'smooth', 'textured',
+                    'metallic', 'velvet', 'glossy', 'frosted', 'rough'
+                ];
+
+                this.lightingLibrary = [
+                    'soft lighting', 'ambient', 'diffused', 'dramatic', 'golden hour',
+                    'neon', 'backlighting', 'sidelight', 'harsh', 'rim light'
+                ];
+            }
+
+            /**
+             * 伪AI术语生成主函数
+             * @returns {Array} 5-10个去重的术语
+             */
+            generateTags() {
+                const allLibraries = [
+                    this.colorLibrary,
+                    this.styleLibrary,
+                    this.moodLibrary,
+                    this.materialLibrary,
+                    this.lightingLibrary
+                ];
+
+                const tags = new Set();
+                const tagCount = Math.floor(Math.random() * 6) + 5; // 5-10个
+
+                // 随机从各个词库中选择
+                while (tags.size < tagCount) {
+                    const randomLibrary = allLibraries[Math.floor(Math.random() * allLibraries.length)];
+                    const randomTag = randomLibrary[Math.floor(Math.random() * randomLibrary.length)];
+                    tags.add(randomTag);
+                }
+
+                return Array.from(tags);
+            }
+
+            /**
+             * 获取单个随机术语（用于演示）
+             * @returns {String} 一个术语
+             */
+            getRandomTag() {
+                const allTags = [
+                    ...this.colorLibrary,
+                    ...this.styleLibrary,
+                    ...this.moodLibrary,
+                    ...this.materialLibrary,
+                    ...this.lightingLibrary
+                ];
+                return allTags[Math.floor(Math.random() * allTags.length)];
+            }
+        }
+
+        // ════════════════════════════════════════
+        // 主管理器
+        // ════════════════════════════════════════
+
+        class ImageCardManager {
+            constructor() {
+                this.currentDate = new Date(2026, 3, 16);
+                this.weekKey = this.generateWeekKey();
+                this.tagGenerator = new DesignTagGenerator();
+                this.currentModalTags = [];
+
+                this.initEventListeners();
+                this.setupGlobalDragDrop();
+                this.setupTagsModal();
+                this.setupPromptModal();
+                this.setupSummaryModal();
+                this.updateWeekDisplay();
+                this.loadWeekData();
+            }
+
+            initEventListeners() {
+                document.getElementById('prevWeekBtn').addEventListener('click', () => this.previousWeek());
+                document.getElementById('nextWeekBtn').addEventListener('click', () => this.nextWeek());
+                document.getElementById('aiModeBtn').addEventListener('click', () => toggleAIMode());
+                document.getElementById('weekSummaryBtn').addEventListener('click', () => this.generateWeekSummary());
+
+                const dayContents = document.querySelectorAll('.day-content');
+                dayContents.forEach(content => {
+                    this.addUploadButton(content);
+                });
+
+                // 添加日总结按钮到每个day-card
+                const dayCards = document.querySelectorAll('.day-card');
+                dayCards.forEach((card, index) => {
+                    const dayKey = card.querySelector('.day-content').dataset.dayKey;
+                    const summaryBtn = document.createElement('button');
+                    summaryBtn.className = 'summary-btn';
+                    summaryBtn.textContent = '🌿 日总结';
+                    summaryBtn.style.marginTop = '12px';
+                    summaryBtn.addEventListener('click', () => this.generateDaySummary(dayKey));
+                    card.querySelector('.day-content').appendChild(summaryBtn);
+                });
+            }
+
+            setupTagsModal() {
+                const overlay = document.getElementById('tagsOverlay');
+                const modal = document.getElementById('tagsModal');
+                const closeBtn = document.getElementById('closeTagsBtn');
+
+                closeBtn.addEventListener('click', () => this.closeTagsModal());
+                overlay.addEventListener('click', () => this.closeTagsModal());
+            }
+
+            setupPromptModal() {
+                const overlay = document.getElementById('promptOverlay');
+                const modal = document.getElementById('promptModal');
+                const closeBtn = document.getElementById('promptCloseBtn');
+                const copyBtn = document.getElementById('copypromptBtn');
+
+                closeBtn.addEventListener('click', () => this.closePromptModal());
+                overlay.addEventListener('click', () => this.closePromptModal());
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', () => {
+                        const text = document.getElementById('promptText').textContent;
+                        this.copyToClipboard(text, copyBtn);
+                    });
+                }
+            }
+
+            setupSummaryModal() {
+                const overlay = document.getElementById('summaryOverlay');
+                const closeBtn = document.getElementById('summaryCloseBtn');
+                const copyBtn = document.getElementById('copySummaryBtn');
+
+                closeBtn.addEventListener('click', () => this.closeSummaryModal());
+                overlay.addEventListener('click', () => this.closeSummaryModal());
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', () => {
+                        const text = document.getElementById('summaryText').textContent;
+                        this.copyToClipboard(text, copyBtn);
+                    });
+                }
+            }
+
+            addUploadButton(dayContent) {
+                const uploadBtn = document.createElement('div');
+                uploadBtn.className = 'upload-btn';
+                uploadBtn.innerHTML = `
+                    📸 点击上传<br>或拖拽图片
+                    <input type="file" accept="image/*" multiple>
+                `;
+
+                const fileInput = uploadBtn.querySelector('input[type="file"]');
+
+                uploadBtn.addEventListener('click', () => {
+                    const todayKey = getTodayKey();
+                    const currentDayKey = dayContent.dataset.dayKey;
+                    
+                    if (currentDayKey !== todayKey) {
+                        alert('只能添加到今天');
+                        return;
+                    }
+                    fileInput.click();
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    const files = Array.from(e.target.files);
+                    const todayContent = document.querySelector(`[data-day-key="${getTodayKey()}"]`);
+                    files.forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            this.handleUpload(file, todayContent);
+                        }
+                    });
+                });
+
+                uploadBtn.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadBtn.style.backgroundColor = 'rgba(212, 165, 116, 0.15)';
+                });
+
+                uploadBtn.addEventListener('dragleave', () => {
+                    uploadBtn.style.backgroundColor = 'rgba(232, 196, 160, 0.05)';
+                });
+
+                uploadBtn.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadBtn.style.backgroundColor = 'rgba(232, 196, 160, 0.05)';
+                    const files = Array.from(e.dataTransfer.files);
+                    const todayContent = document.querySelector(`[data-day-key="${getTodayKey()}"]`);
+                    files.forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            this.handleUpload(file, todayContent);
+                        }
+                    });
+                });
+
+                dayContent.appendChild(uploadBtn);
+            }
+
+            setupGlobalDragDrop() {
+                const dropOverlay = document.getElementById('dropOverlay');
+
+                document.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    dropOverlay.classList.add('active');
+                });
+
+                document.addEventListener('dragleave', (e) => {
+                    if (e.clientX === 0 && e.clientY === 0) {
+                        dropOverlay.classList.remove('active');
+                    }
+                });
+
+                document.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropOverlay.classList.remove('active');
+
+                    const files = Array.from(e.dataTransfer.files);
+                    const todayKey = getTodayKey();
+                    const todayContent = document.querySelector(`[data-day-key="${todayKey}"]`);
+
+                    if (todayContent) {
+                        files.forEach(file => {
+                            if (file.type.startsWith('image/')) {
+                                this.handleUpload(file, todayContent);
+                            }
+                        });
+                    }
+                });
+            }
+
+            async handleUpload(file, dayContent) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const imageData = e.target.result;
+                    const tags = await getTags(imageData);
+                    this.createImageCard(imageData, tags, dayContent);
+                    this.saveWeekData();
+                };
+                reader.readAsDataURL(file);
+            }
+
+            createImageCard(imageData, tags, dayContent) {
+                const rotation = (Math.random() - 0.5) * 6;
+
+                const imageCard = document.createElement('div');
+                imageCard.className = 'image-card collapsed';
+
+                // 缩略图部分
+                const thumb = document.createElement('img');
+                thumb.className = 'card-thumb';
+                thumb.src = imageData;
+                thumb.addEventListener('click', () => this.toggleCardExpand(imageCard));
+
+                // 展开按钮
+                const expandBtn = document.createElement('button');
+                expandBtn.className = 'expand-btn';
+                expandBtn.textContent = '⬍';
+                expandBtn.title = '点击展开图片';
+                expandBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleCardExpand(imageCard);
+                    // 更新按钮文本和提示
+                    if (imageCard.classList.contains('collapsed')) {
+                        expandBtn.textContent = '⬍';
+                        expandBtn.title = '点击展开图片';
+                    } else {
+                        expandBtn.textContent = '⬆';
+                        expandBtn.title = '点击折叠';
+                    }
+                });
+
+                // 拍立得部分（默认隐藏）
+                const polaroid = document.createElement('div');
+                polaroid.className = 'polaroid';
+                polaroid.style.setProperty('--rotation', `${rotation}deg`);
+
+                const img = document.createElement('img');
+                img.src = imageData;
+
+                const decorators = document.createElement('div');
+                decorators.className = 'decorators';
+                this.addRandomDecorators(decorators);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-img-btn';
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    imageCard.remove();
+                    this.saveWeekData();
+                });
+
+                polaroid.appendChild(img);
+                polaroid.appendChild(removeBtn);
+                polaroid.appendChild(decorators);
+
+                // 术语标签部分
+                const tagsDisplay = this.createTagsDisplay(tags, imageData);
+
+                imageCard.appendChild(thumb);
+                imageCard.appendChild(expandBtn);
+                imageCard.appendChild(polaroid);
+                imageCard.appendChild(tagsDisplay);
+
+                const uploadBtn = dayContent.querySelector('.upload-btn');
+                if (uploadBtn) {
+                    dayContent.insertBefore(imageCard, uploadBtn);
+                } else {
+                    dayContent.appendChild(imageCard);
+                }
+
+                imageCard.dataset.imageData = imageData;
+                imageCard.dataset.tags = JSON.stringify(tags);
+            }
+
+            /**
+             * 切换卡片展开/折叠状态
+             * @param {HTMLElement} card - 图片卡片
+             */
+            toggleCardExpand(card) {
+                card.classList.toggle('collapsed');
+            }
+
+            /**
+             * Step 4: 渲染标签系统（支持数组和分组对象）
+             * @param {Array|Object} tagsOrGroups - 标签数组 或 分组对象
+             * @param {HTMLElement} container - 标签容器
+             */
+            renderTags(tagsOrGroups, container) {
+                container.innerHTML = '';
+
+                if (!tagsOrGroups) return;
+
+                const isArray = Array.isArray(tagsOrGroups);
+                const isGroups = !isArray && typeof tagsOrGroups === 'object';
+
+                let allTags = [];
+                let groups = {};
+
+                if (isArray) {
+                    allTags = tagsOrGroups;
+                    if (allTags.length === 0) return;
+                    groups = this.classifyTags(allTags);
+                } else if (isGroups) {
+                    Object.values(tagsOrGroups).forEach(arr => {
+                        if (Array.isArray(arr)) {
+                            allTags.push(...arr);
+                        }
+                    });
+                    if (allTags.length === 0) return;
+                    groups = tagsOrGroups;
+                } else {
+                    return;
+                }
+
+                const preview = document.createElement('div');
+                preview.className = 'tags-preview';
+
+                if (allTags.length > 0) {
+                    const firstTag = document.createElement('span');
+                    firstTag.className = 'tag-capsule';
+                    firstTag.textContent = allTags[0];
+                    firstTag.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.copyToClipboard(allTags[0], firstTag);
+                    });
+                    preview.appendChild(firstTag);
+                }
+
+                const totalCount = Object.values(groups).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+                if (totalCount > 1) {
+                    const countBadge = document.createElement('span');
+                    countBadge.className = 'tag-count';
+                    countBadge.textContent = `+${totalCount - 1}`;
+                    countBadge.style.cursor = 'pointer';
+                    countBadge.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.openTagsModal(allTags);
+                    });
+                    preview.appendChild(countBadge);
+                }
+
+                container.appendChild(preview);
+            }
+
+            /**
+             * 分类标签
+             * @param {Array} tags - 标签数组
+             * @returns {Object} 分类后的标签对象
+             */
+            classifyTags(tags) {
+                const colorKeywords = ['pastel', 'warm tone', 'muted color', 'gradient', 'vibrant', 'monochrome', 'saturated', 'desaturated', 'cool tone', 'earth tone'];
+                const styleKeywords = ['minimal', '3D', 'flat', 'glassmorphism', 'skeuomorphic', 'geometric', 'organic', 'vintage', 'futuristic', 'retro'];
+                const moodKeywords = ['cozy', 'calm', 'cute', 'playful', 'dreamy', 'serene', 'energetic', 'luxurious', 'nostalgic', 'modern'];
+                const lightingKeywords = ['soft lighting', 'ambient', 'diffused', 'dramatic', 'golden hour', 'neon', 'backlighting', 'sidelight', 'harsh', 'rim light'];
+                const materialKeywords = ['matte', 'soft shadow', 'grainy', 'smooth', 'textured', 'metallic', 'velvet', 'glossy', 'frosted', 'rough'];
+
+                const classified = {
+                    color: [],
+                    style: [],
+                    mood: [],
+                    lighting: [],
+                    material: [],
+                    other: []
+                };
+
+                tags.forEach(tag => {
+                    if (colorKeywords.includes(tag)) {
+                        classified.color.push(tag);
+                    } else if (styleKeywords.includes(tag)) {
+                        classified.style.push(tag);
+                    } else if (moodKeywords.includes(tag)) {
+                        classified.mood.push(tag);
+                    } else if (lightingKeywords.includes(tag)) {
+                        classified.lighting.push(tag);
+                    } else if (materialKeywords.includes(tag)) {
+                        classified.material.push(tag);
+                    } else {
+                        classified.other.push(tag);
+                    }
+                });
+
+                return classified;
+            }
+
+            /**
+             * 创建术语标签显示区域
+             * @param {Array|Object} tags - 术语数组或分组对象
+             * @param {String} imageData - 图片base64数据
+             * @returns {HTMLElement} 标签显示容器
+             */
+            createTagsDisplay(tags, imageData) {
+                const container = document.createElement('div');
+                container.className = 'tags-display';
+                
+                const tagsWrapper = document.createElement('div');
+                tagsWrapper.style.display = 'flex';
+                tagsWrapper.style.alignItems = 'center';
+                tagsWrapper.style.gap = '8px';
+                
+                const previewDiv = document.createElement('div');
+                this.renderTags(tags, previewDiv);
+                tagsWrapper.appendChild(previewDiv);
+                
+                const featherBtn = document.createElement('button');
+                featherBtn.className = 'feather-btn';
+                featherBtn.textContent = '🪶';
+                featherBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await this.analyzeStyle(featherBtn, tags, imageData);
+                });
+                tagsWrapper.appendChild(featherBtn);
+                
+                container.appendChild(tagsWrapper);
+                return container;
+            }
+
+            /**
+             * 打开术语列表弹窗
+             * @param {Array} tags - 术语数组
+             */
+            openTagsModal(tags) {
+                this.currentModalTags = tags;
+                const tagsList = document.getElementById('tagsList');
+                tagsList.innerHTML = '';
+
+                tags.forEach(tag => {
+                    const tagItem = document.createElement('div');
+                    tagItem.className = 'tag-item';
+                    tagItem.innerHTML = `
+                        <span>${tag}</span>
+                        <span class="copy-hint">点击复制</span>
+                    `;
+                    tagItem.addEventListener('click', () => {
+                        this.copyToClipboard(tag, tagItem);
+                    });
+                    tagsList.appendChild(tagItem);
+                });
+
+                document.getElementById('tagsModal').classList.add('active');
+                document.getElementById('tagsOverlay').classList.add('active');
+            }
+
+            /**
+             * 关闭术语列表弹窗
+             */
+            closeTagsModal() {
+                document.getElementById('tagsModal').classList.remove('active');
+                document.getElementById('tagsOverlay').classList.remove('active');
+            }
+
+            /**
+             * 打开风格分析弹窗
+             * @param {String} text - 提示词文本
+             */
+            openPromptModal(text) {
+                const promptText = document.getElementById('promptText');
+                promptText.textContent = text || '生成中...';
+                document.getElementById('promptModal').classList.add('active');
+                document.getElementById('promptOverlay').classList.add('active');
+            }
+
+            /**
+             * 关闭风格分析弹窗
+             */
+            closePromptModal() {
+                document.getElementById('promptModal').classList.remove('active');
+                document.getElementById('promptOverlay').classList.remove('active');
+            }
+
+            /**
+             * 打开总结弹窗
+             * @param {String} title - 弹窗标题
+             * @param {String} text - 总结文本
+             */
+            openSummaryModal(title, text) {
+                document.getElementById('summaryTitle').textContent = title;
+                document.getElementById('summaryText').textContent = text || '生成中...';
+                document.getElementById('summaryModal').classList.add('active');
+                document.getElementById('summaryOverlay').classList.add('active');
+            }
+
+            /**
+             * 关闭总结弹窗
+             */
+            closeSummaryModal() {
+                document.getElementById('summaryModal').classList.remove('active');
+                document.getElementById('summaryOverlay').classList.remove('active');
+            }
+
+            /**
+             * 生成日总结
+             * @param {String} dayKey - 日期键值（monday, tuesday等）
+             */
+            async generateDaySummary(dayKey) {
+                const dayContent = document.querySelector(`[data-day-key="${dayKey}"]`);
+                const btn = dayContent.querySelector('.summary-btn');
+                btn.classList.add('loading');
+                btn.disabled = true;
+
+                this.openSummaryModal('✨ 今日灵感总结', '正在分析中...');
+
+                try {
+                    // 收集该天所有图片的标签
+                    const imageCards = dayContent.querySelectorAll('.image-card');
+                    const allTags = [];
+
+                    imageCards.forEach(card => {
+                        const tags = JSON.parse(card.dataset.tags || '[]');
+                        if (Array.isArray(tags)) {
+                            allTags.push(...tags);
+                        } else if (typeof tags === 'object') {
+                            Object.values(tags).forEach(arr => {
+                                if (Array.isArray(arr)) allTags.push(...arr);
+                            });
+                        }
+                    });
+
+                    if (allTags.length === 0) {
+                        document.getElementById('summaryText').textContent = '该天暂无图片上传';
+                        return;
+                    }
+
+                    const response = await fetch('http://localhost:3001/generate-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tags: allTags, type: 'day', dayKey })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data?.text || data?.summary || '生成失败，请重试';
+                    document.getElementById('summaryText').textContent = text;
+                } catch (error) {
+                    console.error('日总结生成错误:', error);
+                    document.getElementById('summaryText').textContent = '生成失败，请重试';
+                } finally {
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }
+            }
+
+            /**
+             * 生成周总结
+             */
+            async generateWeekSummary() {
+                const btn = document.getElementById('weekSummaryBtn');
+                btn.classList.add('loading');
+                btn.disabled = true;
+
+                this.openSummaryModal('📊 本周灵感总结', '正在分析中...');
+
+                try {
+                    // 收集整周所有图片的标签
+                    const imageCards = document.querySelectorAll('.image-card');
+                    const allTags = [];
+                    const weekNotes = document.getElementById('weekNotes').value;
+
+                    imageCards.forEach(card => {
+                        const tags = JSON.parse(card.dataset.tags || '[]');
+                        if (Array.isArray(tags)) {
+                            allTags.push(...tags);
+                        } else if (typeof tags === 'object') {
+                            Object.values(tags).forEach(arr => {
+                                if (Array.isArray(arr)) allTags.push(...arr);
+                            });
+                        }
+                    });
+
+                    if (allTags.length === 0) {
+                        document.getElementById('summaryText').textContent = '本周暂无图片上传';
+                        return;
+                    }
+
+                    const response = await fetch('http://localhost:3001/generate-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tags: allTags, notes: weekNotes, type: 'week' })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data?.text || data?.summary || '生成失败，请重试';
+                    document.getElementById('summaryText').textContent = text;
+                } catch (error) {
+                    console.error('周总结生成错误:', error);
+                    document.getElementById('summaryText').textContent = '生成失败，请重试';
+                } finally {
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }
+            }
+
+            /**
+             * 分析图片风格
+             * @param {HTMLElement} button - 按钮元素
+             * @param {Array|Object} tags - 标签
+             * @param {String} imageData - 图片base64数据
+             */
+            async analyzeStyle(button, tags, imageData) {
+                button.classList.add('loading');
+                button.disabled = true;
+
+                this.openPromptModal('正在分析中...');
+
+                try {
+                    // 转换tags格式为groups
+                    let groups = {};
+                    if (Array.isArray(tags)) {
+                        groups = this.classifyTags(tags);
+                    } else if (typeof tags === 'object') {
+                        groups = tags;
+                    } else {
+                        throw new Error('Invalid tags format');
+                    }
+
+                    const response = await fetch('http://localhost:3001/analyze-style', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ groups })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data?.text || data?.prompt || data?.message || '生成失败，请重试';
+                    
+                    if (data.success || text) {
+                        document.getElementById('promptText').textContent = text;
+                    } else {
+                        throw new Error('分析失败');
+                    }
+                } catch (error) {
+                    console.error('风格分析错误:', error);
+                    document.getElementById('promptText').textContent = '生成失败，请重试';
+                } finally {
+                    button.classList.remove('loading');
+                    button.disabled = false;
+                }
+            }
+
+            /**
+             * 复制术语到剪贴板
+             * @param {String} text - 术语文本
+             * @param {HTMLElement} button - 可选的按钮元素，用于显示反馈
+             */
+            copyToClipboard(text, button = null) {
+                navigator.clipboard.writeText(text).then(() => {
+                    console.log(`✅ 已复制: ${text}`);
+                    this.showCopyFeedback(button);
+                }).catch(() => {
+                    // 降级方案
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    this.showCopyFeedback(button);
+                });
+            }
+
+            /**
+             * 显示复制成功的反馈
+             * @param {HTMLElement} button - 按钮或元素
+             */
+            showCopyFeedback(button) {
+                if (!button) return;
+
+                const originalText = button.textContent;
+                const originalColor = button.style.backgroundColor;
+
+                button.textContent = '✅ 已复制';
+                button.style.backgroundColor = '#90EE90';
+                button.style.color = '#2d2520';
+                button.disabled = true;
+                button.classList.add('copied');
+
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = originalColor;
+                    button.style.color = '';
+                    button.disabled = false;
+                    button.classList.remove('copied');
+                }, 2000);
+            }
+
+            addRandomDecorators(decoratorsContainer) {
+                const decoratorTypes = ['tape', 'pin', 'paperclip'];
+                const decorationCount = Math.floor(Math.random() * 2) + 1;
+
+                for (let i = 0; i < decorationCount; i++) {
+                    const type = decoratorTypes[Math.floor(Math.random() * decoratorTypes.length)];
+                    const decorator = document.createElement('div');
+                    decorator.className = type;
+
+                    if (type === 'tape') {
+                        if (Math.random() > 0.5) {
+                            decorator.classList.add('tape-top');
+                            decorator.style.left = Math.random() * 40 + 20 + '%';
+                        } else {
+                            decorator.classList.add('tape-bottom');
+                            decorator.style.right = Math.random() * 30 + 10 + '%';
+                        }
+                    } else if (type === 'pin') {
+                        decorator.style.top = Math.random() * 20 + 10 + '%';
+                        decorator.style.right = Math.random() * 20 + 10 + '%';
+                    } else if (type === 'paperclip') {
+                        decorator.style.top = Math.random() * 30 + '%';
+                        decorator.style.left = Math.random() * 20 + '%';
+                    }
+
+                    decoratorsContainer.appendChild(decorator);
+                }
+            }
+
+            getTodayKeyLegacy() {
+                const today = new Date(2026, 3, 16);
+                const dayOfWeek = today.getDay();
+                const dayMap = {
+                    0: 'weekend',
+                    1: 'monday',
+                    2: 'tuesday',
+                    3: 'wednesday',
+                    4: 'thursday',
+                    5: 'friday',
+                    6: 'weekend'
+                };
+                return dayMap[dayOfWeek];
+            }
+
+            generateWeekKey() {
+                const monday = this.getMonday(this.currentDate);
+                const year = monday.getFullYear();
+                const week = this.getWeekNumber(monday);
+                return `week-${year}-${week}`;
+            }
+
+            saveWeekData() {
+                const weekData = {
+                    monday: [],
+                    tuesday: [],
+                    wednesday: [],
+                    thursday: [],
+                    friday: [],
+                    weekend: [],
+                    notes: document.getElementById('weekNotes').value
+                };
+
+                document.querySelectorAll('[data-day-key]').forEach(dayContent => {
+                    const dayKey = dayContent.dataset.dayKey;
+                    const imageCards = dayContent.querySelectorAll('.image-card');
+
+                    imageCards.forEach(card => {
+                        weekData[dayKey].push({
+                            imageData: card.dataset.imageData,
+                            tags: JSON.parse(card.dataset.tags)
+                        });
+                    });
+                });
+
+                localStorage.setItem(this.weekKey, JSON.stringify(weekData));
+                console.log(`✅ Week ${this.weekKey} saved`);
+            }
+
+            loadWeekData() {
+                const data = localStorage.getItem(this.weekKey);
+                if (!data) return;
+
+                const weekData = JSON.parse(data);
+
+                Object.keys(weekData).forEach(dayKey => {
+                    if (dayKey === 'notes') return;
+
+                    const dayContent = document.querySelector(`[data-day-key="${dayKey}"]`);
+                    if (dayContent && Array.isArray(weekData[dayKey])) {
+                        weekData[dayKey].forEach(item => {
+                            this.createImageCard(item.imageData, item.tags, dayContent);
+                        });
+                    }
+                });
+
+                document.getElementById('weekNotes').value = weekData.notes || '';
+                console.log(`✅ Week ${this.weekKey} loaded`);
+            }
+
+            previousWeek() {
+                this.currentDate.setDate(this.currentDate.getDate() - 7);
+                this.weekKey = this.generateWeekKey();
+                this.updateWeekDisplay();
+                this.clearView();
+                this.loadWeekData();
+            }
+
+            nextWeek() {
+                this.currentDate.setDate(this.currentDate.getDate() + 7);
+                this.weekKey = this.generateWeekKey();
+                this.updateWeekDisplay();
+                this.clearView();
+                this.loadWeekData();
+            }
+
+            clearView() {
+                document.querySelectorAll('.image-card').forEach(card => card.remove());
+                document.getElementById('weekNotes').value = '';
+            }
+
+            updateWeekDisplay() {
+                const monday = this.getMonday(this.currentDate);
+                const weekNum = this.getWeekNumber(monday);
+
+                document.getElementById('weekTitle').textContent = `Week ${weekNum}`;
+
+                const sundayDate = new Date(monday);
+                sundayDate.setDate(sundayDate.getDate() + 6);
+                const startStr = this.formatDate(monday);
+                const endStr = this.formatDate(sundayDate);
+                document.getElementById('weekRange').textContent = `${startStr} - ${endStr}`;
+
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(monday);
+                    date.setDate(date.getDate() + i);
+                    const dateElement = document.getElementById(`date-${i + 1}`);
+                    if (dateElement) {
+                        dateElement.textContent = this.formatDateShort(date);
+                    }
+                }
+            }
+
+            getMonday(date) {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                return new Date(d.setDate(diff));
+            }
+
+            getWeekNumber(date) {
+                const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+                const dayNum = d.getUTCDay() || 7;
+                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            }
+
+            formatDate(date) {
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${date.getFullYear()}.${month}.${day}`;
+            }
+
+            formatDateShort(date) {
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${month}.${day}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const manager = new ImageCardManager();
+
+            document.getElementById('weekNotes').addEventListener('input', function() {
+                clearTimeout(this.saveTimeout);
+                this.saveTimeout = setTimeout(() => {
+                    manager.saveWeekData();
+                    console.log('✅ 周笔记已自动保存');
+                }, 1000);
+            });
+        });
+    </script>
+</body>
+</html>
